@@ -8,19 +8,25 @@ function mainMenu() {
     name: 'action',
     message: 'What would you like to do?',
     choices: [
-      'Add a Department',
-      'Add a Role',
+      'View All Employees',
+      'View All Roles',
+      'View All Departments',  // <-- Add this line
       'Add an Employee',
       'Update an Employee Role',
+      'Add a Department',
+      'Add a Role',
       'Exit'
     ]
   }).then(answer => {
     switch (answer.action) {
-      case 'Add a Department':
-        addDepartment();
+      case 'View All Employees':
+        viewAllEmployees();
         break;
-      case 'Add a Role':
-        addRole();
+      case 'View All Roles':
+        viewAllRoles();
+        break;
+      case 'View All Departments':   // <-- Add this case
+        viewAllDepartments();        // <-- Call the function here
         break;
       case 'Add an Employee':
         addEmployee();
@@ -28,12 +34,45 @@ function mainMenu() {
       case 'Update an Employee Role':
         updateEmployeeRole();
         break;
+      case 'Add a Department':
+        addDepartment();
+        break;
+      case 'Add a Role':
+        addRole();
+        break;
       case 'Exit':
         console.log('Goodbye!');
         process.exit();
     }
   });
 }
+
+
+
+function viewAllEmployees() {
+  db.viewAllEmployees().then(result => {
+    const uniqueEmployees = Array.from(new Map(result.rows.map(emp => [emp.id, emp])).values());
+    console.table(uniqueEmployees); // Display the employees in a table format
+    mainMenu(); // Return to the main menu after displaying
+  }).catch(err => console.error(err));
+}
+
+function viewAllRoles() {
+  db.viewAllRoles().then(result => {
+    console.table(result.rows); // Display the roles in a table format
+    mainMenu(); // Return to the main menu after displaying
+  }).catch(err => console.error(err));
+}
+
+function viewAllDepartments() {
+  db.viewAllDepartments().then(result => {
+    console.table(result.rows); // Display the departments in a table format
+    mainMenu(); // Return to the main menu after displaying
+  }).catch(err => console.error(err));
+}
+
+
+
 
 function addDepartment() {
   inquirer.prompt({
@@ -47,8 +86,8 @@ function addDepartment() {
 }
 
 function addRole() {
-  db.viewAllDepartments().then(([rows]) => {
-    const departments = rows.map(({ id, name }) => ({
+  db.viewAllDepartments().then(result => {
+    const departments = result.rows.map(({ id, name }) => ({
       name: name,
       value: id
     }));
@@ -76,20 +115,21 @@ function addRole() {
   });
 }
 
+
 function addEmployee() {
-  db.viewAllRoles().then(([roles]) => {
-    const roleChoices = roles.map(({ id, title }) => ({
+  db.viewAllRoles().then(result => {
+    const roles = result.rows.map(({ id, title }) => ({
       name: title,
       value: id
     }));
-    
-    db.viewAllEmployees().then(([employees]) => {
-      const managerChoices = employees.map(({ id, first_name, last_name }) => ({
+
+    db.viewAllEmployees().then(result => {
+      const employees = result.rows.map(({ id, first_name, last_name }) => ({
         name: `${first_name} ${last_name}`,
         value: id
       }));
       
-      managerChoices.unshift({ name: 'None', value: null }); // Add a 'None' option for no manager
+      employees.unshift({ name: 'None', value: null }); // Add a 'None' option for no manager
 
       inquirer.prompt([
         {
@@ -104,13 +144,13 @@ function addEmployee() {
           type: 'list',
           name: 'roleId',
           message: "Select the employee's role:",
-          choices: roleChoices
+          choices: roles
         },
         {
           type: 'list',
           name: 'managerId',
           message: "Select the employee's manager:",
-          choices: managerChoices
+          choices: employees
         }
       ]).then(answers => {
         db.addEmployee(answers.firstName, answers.lastName, answers.roleId, answers.managerId)
@@ -121,31 +161,32 @@ function addEmployee() {
   });
 }
 
+
 function updateEmployeeRole() {
-  db.viewAllEmployees().then(([employees]) => {
-    const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
+  db.viewAllEmployees().then(result => {
+    const employees = result.rows.map(({ id, first_name, last_name }) => ({
       name: `${first_name} ${last_name}`,
       value: id
     }));
-    
-    db.viewAllRoles().then(([roles]) => {
-      const roleChoices = roles.map(({ id, title }) => ({
+
+    db.viewAllRoles().then(result => {
+      const roles = result.rows.map(({ id, title }) => ({
         name: title,
         value: id
       }));
-      
+
       inquirer.prompt([
         {
           type: 'list',
           name: 'employeeId',
           message: 'Select the employee to update:',
-          choices: employeeChoices
+          choices: employees
         },
         {
           type: 'list',
           name: 'roleId',
           message: 'Select the new role:',
-          choices: roleChoices
+          choices: roles
         }
       ]).then(answers => {
         db.updateEmployeeRole(answers.employeeId, answers.roleId)
@@ -155,5 +196,6 @@ function updateEmployeeRole() {
     });
   });
 }
+
 
 mainMenu();
