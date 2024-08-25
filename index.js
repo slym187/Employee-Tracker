@@ -51,11 +51,11 @@ function mainMenu() {
 
 function viewAllEmployees() {
   db.viewAllEmployees().then(result => {
-    const uniqueEmployees = Array.from(new Map(result.rows.map(emp => [emp.id, emp])).values());
-    console.table(uniqueEmployees); // Display the employees in a table format
+    console.table(result.rows); // Display the employees in a table format
     mainMenu(); // Return to the main menu after displaying
   }).catch(err => console.error(err));
 }
+
 
 function viewAllRoles() {
   db.viewAllRoles().then(result => {
